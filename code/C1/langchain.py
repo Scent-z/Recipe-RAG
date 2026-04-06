@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 os.environ['HUGGINGFACE_HUB_CACHE'] = './hf_cache'
-
+ 
 load_dotenv()
 
 markdown_path = 'E:/BJ/Recipe-RAG/data/C1/markdown/easy-rl-chapter1.md'
