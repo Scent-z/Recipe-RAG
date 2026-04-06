@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_community.document_loaders import UnstructuredMarkdownLoader  # LangChain 对 Unstructured 库的封装
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.vectorstores import InMemoryVectorStore
@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 os.environ['HUGGINGFACE_HUB_CACHE'] = './hf_cache'
- 
+
 load_dotenv()
 
 markdown_path = 'E:/BJ/Recipe-RAG/data/C1/markdown/easy-rl-chapter1.md'
