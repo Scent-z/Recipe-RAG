@@ -205,3 +205,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# model weights
+code/C2/model_weights/
+*.pth
+
+# runtime / volumes
+code/volumes/
+
+# cache
+hf_cache/
+.cache/
+
+# temp
+*.wal
+*.tmp
+
+# python
+__pycache__/
+*.pyc
