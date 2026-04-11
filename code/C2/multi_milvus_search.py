@@ -1,4 +1,14 @@
 import os
+from dotenv import load_dotenv
+
+# 加载.env文件中的环境变量
+load_dotenv('E:/BJ/Recipe-RAG/.env')
+
+# 设置HuggingFace缓存目录到项目内以避免权限问题
+os.environ['HF_HOME'] = 'E:/BJ/Recipe-RAG/.cache/huggingface'
+os.environ['TRANSFORMERS_CACHE'] = 'E:/BJ/Recipe-RAG/.cache/huggingface'
+os.environ['HUGGINGFACE_HUB_CACHE'] = 'E:/BJ/Recipe-RAG/.cache/huggingface'
+
 from tqdm import tqdm
 from glob import glob
 import torch
@@ -10,8 +20,8 @@ from PIL import Image
 
 # 1. 初始化设置
 MODEL_NAME = "BAAI/bge-base-en-v1.5"
-MODEL_PATH = "E:/BJ/all-in-rag/code/C3/models/Visualized_base_en_v1.5.pth"
-DATA_DIR = "../../data/C3"
+MODEL_PATH = "E:/BJ/Recipe-RAG/code/C2/model_weights/Visualized_base_en_v1.5.pth"
+DATA_DIR = "E:/BJ/Recipe-RAG/data/C2"
 COLLECTION_NAME = "multimodal_demo"
 MILVUS_URI = "http://localhost:19530"
 
