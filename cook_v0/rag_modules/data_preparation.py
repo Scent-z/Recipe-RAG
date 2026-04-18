@@ -331,10 +331,10 @@ class DataPreparationModule:
             parent_id = chunk.metadata.get("parent_id")
             if parent_id:
                 # 增加相关性计数
-                parent_relevance[parent_id] = parent_relevance.get(parent_id, 0) + 1
+                parent_relevance[parent_id] = parent_relevance.get(parent_id, 0) + 1  # 同一个父文档的多个子块匹配时，不会重复创建统计项，而是累加计数，确保每个 parent_id 只对应一个统计值
 
                 # 缓存父文档（避免重复查找）
-                if parent_id not in parent_docs_map:
+                if parent_id not in parent_docs_map:  # 可能有多个子块指向同一个父文档，只会在第一次遇到时将该父文档存入字典，后续遇到相同 parent_id 会直接跳过
                     for doc in self.documents:
                         if doc.metadata.get("parent_id") == parent_id:
                             parent_docs_map[parent_id] = doc

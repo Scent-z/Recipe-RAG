@@ -10,7 +10,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)    
 
 class IndexConstructionModule:
     """索引构建模块 - 负责向量化和索引构建"""
