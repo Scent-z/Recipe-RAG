@@ -221,11 +221,17 @@ hf_cache/
 *.wal
 *.tmp
 
-# ignore images under data
+# ignore images under cook_v0
 data/**/*.jpg
 data/**/*.jpeg
 data/**/*.png
 data/**/*.webp
+
+# ignore images under cook_v1
+cook_v1/data/dishes/**/*.jpg
+cook_v1/data/dishes/**/*.jpeg
+cook_v1/data/dishes/**/*.png
+cook_v1/data/dishes/**/*.webp
 
 # draft
 draft/
