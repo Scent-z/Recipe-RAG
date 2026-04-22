@@ -221,6 +221,15 @@ hf_cache/
 *.wal
 *.tmp
 
+# ignore images under data
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.png
+data/**/*.webp
+
+# draft
+draft/
+
 # python
 __pycache__/
 *.pyc
