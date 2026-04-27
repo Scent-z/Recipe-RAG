@@ -233,6 +233,12 @@ cook_v1/data/dishes/**/*.jpeg
 cook_v1/data/dishes/**/*.png
 cook_v1/data/dishes/**/*.webp
 
+# ignore images under cook_v2
+cook_v2/data/dishes/**/*.jpg
+cook_v2/data/dishes/**/*.jpeg
+cook_v2/data/dishes/**/*.png
+cook_v2/data/dishess/**/*.webp
+
 # draft
 draft/
 
