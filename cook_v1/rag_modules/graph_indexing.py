@@ -5,6 +5,8 @@ K: 索引键（简短词汇或短语）
 V: 详细描述段落（包含相关文本片段）
 """
 
+# 实现了一个 图索引模块 ，主要功能是将Neo4j图数据库中的实体和关系转换为键值对（K,V）结构，用于后续的RAG检索系统
+
 import json
 import logging
 from typing import Dict, List, Tuple, Any, Optional
@@ -16,8 +18,7 @@ from langchain_core.documents import Document
 logger = logging.getLogger(__name__)
 
 @dataclass
-class EntityKeyValue:
-    """实体键值对"""
+class EntityKeyValue:  # 存储图数据库中实体的键值对表示，每个实体有一个或多个索引键，包含实体的详细描述内容，记录实体类型和元数据
     entity_name: str
     index_keys: List[str]  # 索引键列表
     value_content: str     # 详细描述内容
@@ -25,7 +26,7 @@ class EntityKeyValue:
     metadata: Dict[str, Any]
 
 @dataclass 
-class RelationKeyValue:
+class RelationKeyValue:  # 存储图数据库中关系的键值对表示， 每个关系有多个索引键，包括全局主题，包含关系的详细描述内容，记录关系类型、源实体和目标实体
     """关系键值对"""
     relation_id: str
     index_keys: List[str]  # 多个索引键（可包含全局主题）
@@ -57,6 +58,7 @@ class GraphIndexingModule:
         self.key_to_entities: Dict[str, List[str]] = defaultdict(list)
         self.key_to_relations: Dict[str, List[str]] = defaultdict(list)
         
+    # 将Recipe、Ingredient和CookingStep实体转换为键值对，为每个实体生成索引键（使用实体名称），构建实体的详细描述内容，建立索引键到实体的映射
     def create_entity_key_values(self, recipes: List[Any], ingredients: List[Any], 
                                 cooking_steps: List[Any]) -> Dict[str, EntityKeyValue]:
         """
@@ -98,8 +100,8 @@ class GraphIndexingModule:
                 }
             )
             
-            self.entity_kv_store[entity_id] = entity_kv
-            self.key_to_entities[entity_name].append(entity_id)
+            self.entity_kv_store[entity_id] = entity_kv  # 菜谱id -> 菜谱详细信息
+            self.key_to_entities[entity_name].append(entity_id)  # 菜谱名 -> 菜谱id
         
         # 处理食材实体
         for ingredient in ingredients:
@@ -123,13 +125,13 @@ class GraphIndexingModule:
                 value_content='\n'.join(content_parts),
                 entity_type="Ingredient",
                 metadata={
-                    "node_id": entity_id,
-                    "properties": getattr(ingredient, 'properties', {})
+                    "node_id": entity_id, 
+                    "properties": getattr(ingredient, 'properties', {})  
                 }
             )
             
-            self.entity_kv_store[entity_id] = entity_kv
-            self.key_to_entities[entity_name].append(entity_id)
+            self.entity_kv_store[entity_id] = entity_kv  # 食材id -> 食材详细信息
+            self.key_to_entities[entity_name].append(entity_id)  # 食材名 -> 食材id
         
         # 处理烹饪步骤实体
         for step in cooking_steps:
@@ -160,8 +162,8 @@ class GraphIndexingModule:
                 }
             )
             
-            self.entity_kv_store[entity_id] = entity_kv
-            self.key_to_entities[entity_name].append(entity_id)
+            self.entity_kv_store[entity_id] = entity_kv  # 步骤id -> 步骤详细信息
+            self.key_to_entities[entity_name].append(entity_id)  # 步骤名 -> 步骤id
         
         logger.info(f"实体键值对创建完成，共 {len(self.entity_kv_store)} 个实体")
         return self.entity_kv_store

@@ -2,7 +2,6 @@
 基于图数据库的RAG系统配置文件
 """
 
-import os
 from dataclasses import dataclass
 from typing import Dict, Any
 
@@ -11,20 +10,20 @@ class GraphRAGConfig:
     """基于图数据库的RAG系统配置类"""
 
     # Neo4j数据库配置
-    neo4j_uri: str = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-    neo4j_user: str = os.getenv("NEO4J_USER", "neo4j")
-    neo4j_password: str = os.getenv("NEO4J_PASSWORD", "all-in-rag")
-    neo4j_database: str = os.getenv("NEO4J_DATABASE", "neo4j")
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "all-in-rag"
+    neo4j_database: str = "neo4j"
 
     # Milvus配置
-    milvus_host: str = os.getenv("MILVUS_HOST", "localhost")
-    milvus_port: int = int(os.getenv("MILVUS_PORT", "19530"))
+    milvus_host: str = "localhost"
+    milvus_port: int = 19530
     milvus_collection_name: str = "cooking_knowledge"
     milvus_dimension: int = 512  # BGE-small-zh-v1.5的向量维度
 
     # 模型配置
-    embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
-    llm_model: str = os.getenv("LLM_MODEL", "moonshot-v1-8k")
+    embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    llm_model: str = "kimi-k2-0711-preview"
 
     # 检索配置（LightRAG Round-robin策略）
     top_k: int = 5

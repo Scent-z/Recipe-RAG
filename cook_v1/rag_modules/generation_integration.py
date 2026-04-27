@@ -23,39 +23,17 @@ class GenerationIntegrationModule:
         self.temperature = temperature
         self.max_tokens = max_tokens
         
-        # 统一的LLM客户端配置（支持所有兼容OpenAI格式的供应商）
-        api_key = os.getenv("OPENAI_API_KEY")
+        # 初始化OpenAI客户端（使用Moonshot API）
+        api_key = os.getenv("MOONSHOT_API_KEY")
         if not api_key:
-            raise ValueError("请设置 OPENAI_API_KEY 环境变量")
-
-        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.moonshot.cn/v1")
-
+            raise ValueError("请设置 MOONSHOT_API_KEY 环境变量")
+        
         self.client = OpenAI(
             api_key=api_key,
-            base_url=self.base_url
+            base_url="https://api.moonshot.cn/v1"
         )
 
-        logger.info(f"生成模块初始化完成，模型: {model_name}, API地址: {self.base_url}")
-
-    def _build_prompt(self, question: str, context: str) -> str:
-        """构建统一的提示词"""
-        return f"""
-        作为一位专业的烹饪助手，请基于以下信息回答用户的问题。
-
-        检索到的相关信息：
-        {context}
-
-        用户问题：{question}
-
-        请提供准确、实用的回答。根据问题的性质：
-        - 如果是询问多个菜品，请提供清晰的列表
-        - 如果是询问具体制作方法，请提供详细步骤
-        - 如果是一般性咨询，请提供综合性回答
-
-        重要提醒：如果问题涉及之前对话中提到的具体菜谱或食材，请严格基于之前提供的信息回答，不要添加之前没有提到的食材或调料。
-
-        回答：
-        """
+        logger.info(f"生成模块初始化完成，模型: {model_name}")
 
     def generate_adaptive_answer(self, question: str, documents: List[Document]) -> str:
         """
@@ -76,9 +54,23 @@ class GenerationIntegrationModule:
                     context_parts.append(content)
         
         context = "\n\n".join(context_parts)
+        
+        # LightRAG风格的统一提示词
+        prompt = f"""
+        作为一位专业的烹饪助手，请基于以下信息回答用户的问题。
 
-        # 使用统一的提示词构建方法
-        prompt = self._build_prompt(question, context)
+        检索到的相关信息：
+        {context}
+
+        用户问题：{question}
+
+        请提供准确、实用的回答。根据问题的性质：
+        - 如果是询问多个菜品，请提供清晰的列表
+        - 如果是询问具体制作方法，请提供详细步骤
+        - 如果是一般性咨询，请提供综合性回答
+
+        回答：
+        """
         
         try:
             response = self.client.chat.completions.create(
@@ -113,9 +105,23 @@ class GenerationIntegrationModule:
                     context_parts.append(content)
         
         context = "\n\n".join(context_parts)
+        
+        # LightRAG风格的统一提示词
+        prompt = f"""
+        作为一位专业的烹饪助手，请基于以下信息回答用户的问题。
 
-        # 使用统一的提示词构建方法
-        prompt = self._build_prompt(question, context)
+        检索到的相关信息：
+        {context}
+
+        用户问题：{question}
+
+        请提供准确、实用的回答。根据问题的性质：
+        - 如果是询问多个菜品，请提供清晰的列表
+        - 如果是询问具体制作方法，请提供详细步骤
+        - 如果是一般性咨询，请提供综合性回答
+
+        回答：
+        """
         
         for attempt in range(max_retries):
             try:

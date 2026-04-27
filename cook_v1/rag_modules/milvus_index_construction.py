@@ -196,6 +196,7 @@ class MilvusIndexConstructionModule:
             logger.error(f"创建索引失败: {e}")
             return False
     
+    # chunks是一个list，每个chunk都是一个doc
     def build_vector_index(self, chunks: List[Document]) -> bool:
         """
         构建向量索引

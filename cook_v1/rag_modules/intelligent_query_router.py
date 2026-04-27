@@ -205,45 +205,16 @@ class IntelligentQueryRouter:
     
     def _combined_search(self, query: str, top_k: int) -> List[Document]:
         """
-        组合搜索策略：并行执行传统检索和图RAG检索
+        组合搜索策略：结合传统检索和图RAG的优势
         """
-        import concurrent.futures
-        import threading
-
         # 分配结果数量
         traditional_k = max(1, top_k // 2)
         graph_k = top_k - traditional_k
-
-        # 🚀 并行执行两种检索
-        traditional_docs = []
-        graph_docs = []
-
-        def traditional_search():
-            nonlocal traditional_docs
-            try:
-                traditional_docs = self.traditional_retrieval.hybrid_search(query, traditional_k)
-                logger.info(f"传统检索完成: {len(traditional_docs)} 个结果")
-            except Exception as e:
-                logger.error(f"传统检索失败: {e}")
-                traditional_docs = []
-
-        def graph_search():
-            nonlocal graph_docs
-            try:
-                graph_docs = self.graph_rag_retrieval.graph_rag_search(query, graph_k)
-                logger.info(f"图RAG检索完成: {len(graph_docs)} 个结果")
-            except Exception as e:
-                logger.error(f"图RAG检索失败: {e}")
-                graph_docs = []
-
-        # 使用线程池并行执行
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_traditional = executor.submit(traditional_search)
-            future_graph = executor.submit(graph_search)
-
-            # 等待两个检索完成
-            concurrent.futures.wait([future_traditional, future_graph], timeout=30)
-
+        
+        # 执行两种检索
+        traditional_docs = self.traditional_retrieval.hybrid_search(query, traditional_k)
+        graph_docs = self.graph_rag_retrieval.graph_rag_search(query, graph_k)
+        
         # 合并和去重
         combined_docs = []
         seen_contents = set()

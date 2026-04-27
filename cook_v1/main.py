@@ -7,7 +7,6 @@ import os
 import sys
 import time
 import logging
-from datetime import datetime
 from typing import List, Optional
 
 # 设置日志
@@ -18,10 +17,6 @@ logger = logging.getLogger(__name__)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
-# 加载环境变量
-# 需要在加载GraphRAGConfig执行调用load_dotenv()
-load_dotenv()
-
 from config import DEFAULT_CONFIG, GraphRAGConfig
 from rag_modules import (
     GraphDataPreparationModule,
@@ -31,10 +26,9 @@ from rag_modules import (
 from rag_modules.hybrid_retrieval import HybridRetrievalModule
 from rag_modules.graph_rag_retrieval import GraphRAGRetrieval
 from rag_modules.intelligent_query_router import IntelligentQueryRouter, QueryAnalysis
-from rag_modules.session_cache_manager import SessionCacheManager
-from rag_modules.web_service_handler import WebServiceHandler
-from rag_modules.recipe_recommendation import RecipeRecommendationManager
 
+# 加载环境变量
+load_dotenv()
 
 class AdvancedGraphRAGSystem:
     """
@@ -63,9 +57,6 @@ class AdvancedGraphRAGSystem:
         
         # 系统状态
         self.system_ready = False
-
-        # 会话缓存管理器
-        self.cache_manager = None
         
     def initialize_system(self):
         """初始化高级图RAG系统"""
@@ -123,21 +114,7 @@ class AdvancedGraphRAGSystem:
                 llm_client=self.generation_module.client,
                 config=self.config
             )
-
-            # 7. 会话缓存管理器
-            print("初始化会话缓存管理器...")
-            self.cache_manager = SessionCacheManager(
-                embedding_model=self.index_module.embeddings
-            )
-
-            # 8. 菜谱推荐管理器
-            print("初始化菜谱推荐管理器...")
-            self.recipe_manager = RecipeRecommendationManager()
-
-            # 9. Web服务处理器
-            print("初始化Web服务处理器...")
-            self.web_handler = WebServiceHandler(self)
-
+            
             print("✅ 高级图RAG系统初始化完成！")
             
         except Exception as e:
@@ -174,23 +151,24 @@ class AdvancedGraphRAGSystem:
             print("未找到已存在的集合，开始构建新的知识库...")
             
             # 从Neo4j加载图数据
-            print("从Neo4j加载图数据...")
+            print("从Neo4j加载图数据...")  # 加载图数据，包括所有菜谱、食材、步骤等
             self.data_module.load_graph_data()
             
             # 构建菜谱文档
-            print("构建菜谱文档...")
+            print("构建菜谱文档...")  # 将上一步加载的数据按菜谱进行组合，构建每个菜谱的详细文档，包含名称、食材、步骤等
             self.data_module.build_recipe_documents()
             
             # 进行文档分块
             print("进行文档分块...")
-            chunks = self.data_module.chunk_documents(
+            chunks = self.data_module.chunk_documents(  # 对每个菜谱文档进行分块，每个块包含一定数量的文本
+                documents=self.data_module.documents,
                 chunk_size=self.config.chunk_size,
                 chunk_overlap=self.config.chunk_overlap
             )
             
             # 构建Milvus向量索引
             print("构建Milvus向量索引...")
-            if not self.index_module.build_vector_index(chunks):
+            if not self.index_module.build_vector_index(chunks):  # 往Milvus中插入实体数据并构建索引（HNSW）（使用余弦相似度计算）
                 raise Exception("构建向量索引失败")
             
             # 初始化检索器
@@ -213,10 +191,10 @@ class AdvancedGraphRAGSystem:
         if chunks is None:
             chunks = self.data_module.chunks or []
         
-        # 初始化传统检索器
+        # 初始化传统混合检索器    构建索引，创建实体键值对与关系键值对
         self.traditional_retrieval.initialize(chunks)
         
-        # 初始化图RAG检索器
+        # 初始化图RAG检索器      构建索引，构建实体索引和关系索引
         self.graph_rag_retrieval.initialize()
         
         self.system_ready = True
@@ -290,7 +268,8 @@ class AdvancedGraphRAGSystem:
                 if len(doc_info) > 3:
                     print(f"    等 {len(relevant_docs)} 个结果...")
             else:
-                return "抱歉，没有找到相关的烹饪信息。请尝试其他问题。"
+                # 保持返回值签名一致：始终返回 (result, analysis)
+                return "抱歉，没有找到相关的烹饪信息。请尝试其他问题。", analysis
             
             # 4. 生成回答
             print("🎯 智能生成回答...")
@@ -318,47 +297,113 @@ class AdvancedGraphRAGSystem:
         except Exception as e:
             logger.error(f"问答处理失败: {e}")
             return f"抱歉，处理问题时出现错误：{str(e)}", None
+    
 
-    def _get_query_embedding(self, query: str):
-        """获取查询的向量表示（用于语义缓存）"""
-        try:
-            if hasattr(self.index_module, 'embedding_model'):
-                # 使用现有的embedding模型
-                return self.index_module.embedding_model.embed_documents([query])[0]
-            return None
-        except Exception as e:
-            logger.warning(f"获取查询向量失败: {e}")
-            return None
+    
 
-    def run_web_service(self):
-        """运行Web服务模式"""
+    
+    def run_interactive(self):
+        """运行交互式问答"""
         if not self.system_ready:
             print("❌ 系统未就绪，请先构建知识库")
             return
+            
+        print("\n欢迎使用尝尝咸淡RAG烹饪助手！")
+        print("可用功能：")
+        print("   - 'stats' : 查看系统统计")
+        print("   - 'rebuild' : 重建知识库")
+        print("   - 'quit' : 退出系统")
+        print("\n" + "="*50)
+        
+        while True:
+            try:
+                user_input = input("\n您的问题: ").strip()
+                
+                if not user_input:
+                    continue
+                    
+                if user_input.lower() == 'quit':
+                    break
+                elif user_input.lower() == 'stats':
+                    self._show_system_stats()
+                    continue
+                elif user_input.lower() == 'rebuild':
+                    self._rebuild_knowledge_base()
+                    continue
+                
+                # 普通问答 - 使用默认设置
+                use_stream = True  # 默认使用流式输出
+                explain_routing = False  # 默认不显示路由决策
 
+                print("\n回答:")
+                
+                result, analysis = self.ask_question_with_routing(
+                    user_input, 
+                    stream=use_stream, 
+                    explain_routing=explain_routing
+                )
+                
+                if not use_stream and result:
+                    print(f"{result}\n")
+                
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print(f"处理问题时出错: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        print("\n👋 感谢使用尝尝咸淡RAG烹饪助手！")
+        self._cleanup()
+    
+    def _show_system_stats(self):
+        """显示系统统计信息"""
+        print("\n系统运行统计")
+        print("=" * 40)
+        
+        # 路由统计
+        route_stats = self.query_router.get_route_statistics()
+        total_queries = route_stats.get('total_queries', 0)
+        
+        if total_queries > 0:
+            print(f"总查询次数: {total_queries}")
+            print(f"传统检索: {route_stats.get('traditional_count', 0)} ({route_stats.get('traditional_ratio', 0):.1%})")
+            print(f"图RAG检索: {route_stats.get('graph_rag_count', 0)} ({route_stats.get('graph_rag_ratio', 0):.1%})")
+            print(f"组合策略: {route_stats.get('combined_count', 0)} ({route_stats.get('combined_ratio', 0):.1%})")
+        else:
+            print("暂无查询记录")
+        
+        # 知识库统计
+        self._show_knowledge_base_stats()
+    
+    def _rebuild_knowledge_base(self):
+        """重建知识库"""
+        print("\n准备重建知识库...")
+        
+        # 确认操作
+        confirm = input("⚠️  这将删除现有的向量数据并重新构建，是否继续？(y/N): ").strip().lower()
+        if confirm != 'y':
+            print("❌ 重建操作已取消")
+            return
+        
         try:
-            # 使用Web服务处理器设置Flask应用
-            app = self.web_handler.setup_flask_app()
-            if not app:
-                print("❌ Flask应用初始化失败")
-                return
-
-            print("🚀 启动Web服务...")
-            print(f"📊 健康检查: http://localhost:8000/health")
-            print(f"💬 聊天API: http://localhost:8000/api/chat")
-            print(f"🌊 流式聊天: http://localhost:8000/api/chat/stream")
-            print(f"🍽️ 菜谱推荐: http://localhost:8000/api/recipes/recommendations")
-            print(f"📖 菜谱详情: http://localhost:8000/api/recipes/<recipe_id>")
-            print(f"📈 统计信息: http://localhost:8000/api/stats")
-            print("=" * 50)
-
-            # 启动Flask应用
-            app.run(host='0.0.0.0', port=8000, debug=False)
-
+            print("删除现有的Milvus集合...")
+            if self.index_module.delete_collection():
+                print("✅ 现有集合已删除")
+            else:
+                print("删除集合时出现问题，继续重建...")
+            
+            # 重新构建知识库
+            print("开始重建知识库...")
+            self.build_knowledge_base()
+            
+            print("✅ 知识库重建完成！")
+            
         except Exception as e:
-            logger.error(f"Web服务启动失败: {e}")
-            print(f"❌ Web服务启动失败: {e}")
-
+            logger.error(f"重建知识库失败: {e}")
+            print(f"❌ 重建失败: {e}")
+            print("建议：请检查Milvus服务状态后重试")
+    
     def _cleanup(self):
         """清理资源"""
         if self.data_module:
@@ -384,8 +429,8 @@ def main():
         # 构建知识库
         rag_system.build_knowledge_base()
         
-        # 启动Web服务（Docker环境）
-        rag_system.run_web_service()
+        # 运行交互式问答
+        rag_system.run_interactive()
         
     except Exception as e:
         logger.error(f"系统运行失败: {e}")

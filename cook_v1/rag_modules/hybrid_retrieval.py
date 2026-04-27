@@ -81,10 +81,13 @@ class HybridRetrievalModule:
             cooking_steps = self.data_module.cooking_steps
             
             # 创建实体键值对
+            # 菜谱、食材、步骤id -> 分别详细信息 + 菜谱、食材、步骤名（名字作为索引键） -> 分别id
             self.graph_indexing.create_entity_key_values(recipes, ingredients, cooking_steps)
             
             # 创建关系键值对（这里需要从Neo4j获取关系数据）
+            # 提取出所有的关系，包括谱、食材、步骤之间的关系
             relationships = self._extract_relationships_from_graph()
+            # 关系id -> 关系详细信息 + 关系索引键 -> 分别id
             self.graph_indexing.create_relation_key_values(relationships)
             
             # 去重优化
@@ -109,7 +112,7 @@ class HybridRetrievalModule:
                 RETURN source.nodeId as source_id, type(r) as relation_type, target.nodeId as target_id
                 LIMIT 1000
                 """
-                result = session.run(query)
+                result = session.run(query)  # 提取出所有的关系，包括谱、食材、步骤之间的关系
                 
                 for record in result:
                     relationships.append((
@@ -544,42 +547,17 @@ class HybridRetrievalModule:
     
     def hybrid_search(self, query: str, top_k: int = 5) -> List[Document]:
         """
-        混合检索：并行执行多种检索策略
+        混合检索：使用Round-robin轮询合并策略
+        公平轮询合并不同检索结果，不使用权重配置
         """
-        import concurrent.futures
-
-        logger.info(f"开始并行混合检索: {query}")
-
-        # 🚀 并行执行不同检索策略
-        dual_docs = []
-        vector_docs = []
-
-        def dual_search():
-            nonlocal dual_docs
-            try:
-                dual_docs = self.dual_level_retrieval(query, top_k)
-                logger.info(f"双层检索完成: {len(dual_docs)} 个结果")
-            except Exception as e:
-                logger.error(f"双层检索失败: {e}")
-                dual_docs = []
-
-        def vector_search():
-            nonlocal vector_docs
-            try:
-                vector_docs = self.vector_search_enhanced(query, top_k)
-                logger.info(f"向量检索完成: {len(vector_docs)} 个结果")
-            except Exception as e:
-                logger.error(f"向量检索失败: {e}")
-                vector_docs = []
-
-        # 使用线程池并行执行
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_dual = executor.submit(dual_search)
-            future_vector = executor.submit(vector_search)
-
-            # 等待检索完成
-            concurrent.futures.wait([future_dual, future_vector], timeout=20)
-
+        logger.info(f"开始混合检索: {query}")
+        
+        # 1. 双层检索（实体+主题检索）
+        dual_docs = self.dual_level_retrieval(query, top_k)
+        
+        # 2. 增强向量检索
+        vector_docs = self.vector_search_enhanced(query, top_k)
+        
         # 3. Round-robin轮询合并
         merged_docs = []
         seen_doc_ids = set()

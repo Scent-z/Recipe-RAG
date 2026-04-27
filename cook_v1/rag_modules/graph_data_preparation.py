@@ -81,6 +81,8 @@ class GraphDataPreparationModule:
             self.driver.close()
             logger.info("Neo4j连接已关闭")
     
+    # 从 Neo4j 里把三类节点读出来：菜谱 Recipe、食材 Ingredient、烹饪步骤 CookingStep
+    # 然后转成 Python 里的 GraphNode 对象，分别存到 self.recipes / self.ingredients / self.cooking_steps
     def load_graph_data(self) -> Dict[str, Any]:
         """
         从Neo4j加载图数据
@@ -176,6 +178,7 @@ class GraphDataPreparationModule:
             'cooking_steps': len(self.cooking_steps)
         }
     
+    # 把 Neo4j 里的图结构（菜谱（名） + 食材 + 步骤）拼接在一起，再构建成Document
     def build_recipe_documents(self) -> List[Document]:
         """
         构建菜谱文档，集成相关的食材和步骤信息
@@ -193,7 +196,7 @@ class GraphDataPreparationModule:
                     recipe_id = recipe.node_id
                     recipe_name = recipe.name
                     
-                    # 获取菜谱的相关食材
+                    # 获取每个菜谱的相关食材
                     ingredients_query = """
                     MATCH (r:Recipe {nodeId: $recipe_id})-[req:REQUIRES]->(i:Ingredient)
                     RETURN i.name as name, i.category as category, 
@@ -214,7 +217,7 @@ class GraphDataPreparationModule:
                             ingredient_text += f" - {ing_record['description']}"
                         ingredients_info.append(ingredient_text)
                     
-                    # 获取菜谱的烹饪步骤
+                    # 获取每个菜谱的烹饪步骤
                     steps_query = """
                     MATCH (r:Recipe {nodeId: $recipe_id})-[c:CONTAINS_STEP]->(s:CookingStep)
                     RETURN s.name as name, s.description as description,
@@ -301,7 +304,7 @@ class GraphDataPreparationModule:
                         }
                     )
                     
-                    documents.append(doc)
+                    documents.append(doc)  # 每个doc包含一个菜谱详细信息
                     
                 except Exception as e:
                     logger.warning(f"构建菜谱文档失败 {recipe_name} (ID: {recipe_id}): {e}")
@@ -311,6 +314,7 @@ class GraphDataPreparationModule:
         logger.info(f"成功构建 {len(documents)} 个菜谱文档")
         return documents
     
+    # 把长文档切成小块（chunk），方便后面做向量检索（embedding）
     def chunk_documents(self, chunk_size: int = 500, chunk_overlap: int = 50) -> List[Document]:
         """
         对文档进行分块处理
@@ -330,7 +334,7 @@ class GraphDataPreparationModule:
         chunks = []
         chunk_id = 0
         
-        for doc in self.documents:
+        for doc in self.documents:  # 一个 recipe 对应一个 doc
             content = doc.page_content
             
             # 简单的按长度分块
@@ -347,7 +351,7 @@ class GraphDataPreparationModule:
                         "chunk_size": len(content),
                         "doc_type": "chunk"
                     }
-                )
+                )   
                 chunks.append(chunk)
                 chunk_id += 1
             else:
@@ -355,6 +359,7 @@ class GraphDataPreparationModule:
                 sections = content.split('\n## ')
                 if len(sections) <= 1:
                     # 没有二级标题，按长度强制分块
+                    # 滑动窗口分块，每个块包含一定数量的文本，重叠部分为 chunk_overlap
                     total_chunks = (len(content) - 1) // (chunk_size - chunk_overlap) + 1
                     
                     for i in range(total_chunks):
