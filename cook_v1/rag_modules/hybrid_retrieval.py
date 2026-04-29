@@ -49,7 +49,7 @@ class HybridRetrievalModule:
         self.graph_indexing = GraphIndexingModule(config, llm_client)
         self.graph_indexed = False
         
-    def initialize(self, chunks: List[Document]):
+    def initialize(self, chunks: List[Document]):  # ✅️
         """初始化检索系统"""
         logger.info("初始化混合检索模块...")
         
@@ -59,15 +59,15 @@ class HybridRetrievalModule:
             auth=(self.config.neo4j_user, self.config.neo4j_password)
         )
         
-        # 初始化BM25检索器
-        if chunks:
-            self.bm25_retriever = BM25Retriever.from_documents(chunks)
-            logger.info(f"BM25检索器初始化完成，文档数量: {len(chunks)}")
+        # # 初始化BM25检索器
+        # if chunks:
+        #     self.bm25_retriever = BM25Retriever.from_documents(chunks)  # 稀疏向量检索
+        #     logger.info(f"BM25检索器初始化完成，文档数量: {len(chunks)}")
         
         # 初始化图索引
         self._build_graph_index()
         
-    def _build_graph_index(self):
+    def _build_graph_index(self):  # ✅️
         """构建图索引"""
         if self.graph_indexed:
             return
@@ -100,7 +100,7 @@ class HybridRetrievalModule:
         except Exception as e:
             logger.error(f"构建图索引失败: {e}")
             
-    def _extract_relationships_from_graph(self) -> List[Tuple[str, str, str]]:
+    def _extract_relationships_from_graph(self) -> List[Tuple[str, str, str]]:  # ✅️
         """从Neo4j图中提取关系"""
         relationships = []
         
@@ -126,7 +126,7 @@ class HybridRetrievalModule:
             
         return relationships
             
-    def extract_query_keywords(self, query: str) -> Tuple[List[str], List[str]]:
+    def extract_query_keywords(self, query: str) -> Tuple[List[str], List[str]]:  # ✅️
         """
         提取查询关键词：实体级 + 主题级
         """
@@ -185,7 +185,8 @@ class HybridRetrievalModule:
             keywords = query.split()
             return keywords[:3], keywords[3:6] if len(keywords) > 3 else keywords
     
-    def entity_level_retrieval(self, entity_keywords: List[str], top_k: int = 5) -> List[RetrievalResult]:
+    # TODO top5够吗
+    def entity_level_retrieval(self, entity_keywords: List[str], top_k: int = 5) -> List[RetrievalResult]:  # ✅️
         """
         实体级检索：专注于具体实体和关系
         使用图索引的键值对结构进行检索
@@ -195,16 +196,17 @@ class HybridRetrievalModule:
         # 1. 使用图索引进行实体检索
         for keyword in entity_keywords:
             # 检索匹配的实体
-            entities = self.graph_indexing.get_entities_by_key(keyword)
+            entities = self.graph_indexing.get_entities_by_key(keyword)  # 获取到该实体的详细信息，例如鸡肉的详细信息，红烧肉的详细信息
             
             for entity in entities:
                 # 获取邻居信息
-                neighbors = self._get_node_neighbors(entity.metadata["node_id"], max_neighbors=2)
+                # TODO 这里返回的邻居数2会不会太少了
+                neighbors = self._get_node_neighbors(entity.metadata["node_id"], max_neighbors=2)  # 获取和该实体产生联系的实体，即该实体的邻居信息，例如鸡肉的邻居信息，红烧肉的邻居信息
                 
                 # 构建增强内容
-                enhanced_content = entity.value_content
+                enhanced_content = entity.value_content 
                 if neighbors:
-                    enhanced_content += f"\n相关信息: {', '.join(neighbors)}"
+                    enhanced_content += f"\n相关信息: {', '.join(neighbors)}"  # 例如在宫保鸡丁实体中添加鸡肉实体的详细信息（宫保鸡丁需要鸡肉，假设邻居匹配到了鸡肉）
                 
                 results.append(RetrievalResult(
                     content=enhanced_content,
@@ -220,7 +222,7 @@ class HybridRetrievalModule:
                     }
                 ))
         
-        # 2. 如果图索引结果不足，使用Neo4j进行补充检索
+        # 2. 如果图索引结果不足（实体数量太少），使用Neo4j进行补充检索
         if len(results) < top_k:
             neo4j_results = self._neo4j_entity_level_search(entity_keywords, top_k - len(results))
             results.extend(neo4j_results)
@@ -229,14 +231,19 @@ class HybridRetrievalModule:
         results.sort(key=lambda x: x.relevance_score, reverse=True)
         
         logger.info(f"实体级检索完成，返回 {len(results)} 个结果")
+        logger.info("=" * 100)
+        for i, r in enumerate(results):
+            logger.info(f"第{i + 1}个实体: ", r)
+        logger.info("=" * 100)
         return results[:top_k]
     
-    def _neo4j_entity_level_search(self, keywords: List[str], limit: int) -> List[RetrievalResult]:
+    def _neo4j_entity_level_search(self, keywords: List[str], limit: int) -> List[RetrievalResult]:  # ✅️
         """Neo4j补充检索"""
         results = []
         
         try:
             with self.driver.session() as session:
+                # 接收多个关键词，对每个关键词进行全文前缀匹配，只返回食谱类型的节点，按相关性排序返回最匹配的结果
                 cypher_query = """
                 UNWIND $keywords as keyword
                 CALL db.index.fulltext.queryNodes('recipe_fulltext_index', keyword + '*') 
@@ -282,7 +289,8 @@ class HybridRetrievalModule:
             
         return results
     
-    def topic_level_retrieval(self, topic_keywords: List[str], top_k: int = 5) -> List[RetrievalResult]:
+    # TODO 同上，5个够吗
+    def topic_level_retrieval(self, topic_keywords: List[str], top_k: int = 5) -> List[RetrievalResult]:  # ✅️
         """
         主题级检索：专注于广泛主题和概念
         使用图索引的关系键值对结构进行主题检索
@@ -433,7 +441,7 @@ class HybridRetrievalModule:
             
         return results
         
-    def dual_level_retrieval(self, query: str, top_k: int = 5) -> List[Document]:
+    def dual_level_retrieval(self, query: str, top_k: int = 5) -> List[Document]:  # ✅️
         """
         双层检索：结合实体级和主题级检索
         """
@@ -445,6 +453,11 @@ class HybridRetrievalModule:
         # 2. 执行双层检索
         entity_results = self.entity_level_retrieval(entity_keywords, top_k)
         topic_results = self.topic_level_retrieval(topic_keywords, top_k)
+
+        log.info('实体检索关键字：', entity_keywords)
+        log.info('实体检索结果：', entity_results)
+        log.info('主题检索关键字：', topic_keywords)
+        log.info('主题检索结果：', topic_results)
         
         # 3. 结果合并和排序
         all_results = entity_results + topic_results
@@ -481,7 +494,7 @@ class HybridRetrievalModule:
         logger.info(f"双层检索完成，返回 {len(documents)} 个文档")
         return documents
     
-    def vector_search_enhanced(self, query: str, top_k: int = 5) -> List[Document]:
+    def vector_search_enhanced(self, query: str, top_k: int = 5) -> List[Document]:  # ✅️
         """
         增强的向量检索：结合图信息
         """
@@ -530,7 +543,7 @@ class HybridRetrievalModule:
             logger.error(f"增强向量检索失败: {e}")
             return []
     
-    def _get_node_neighbors(self, node_id: str, max_neighbors: int = 3) -> List[str]:
+    def _get_node_neighbors(self, node_id: str, max_neighbors: int = 3) -> List[str]:  # ✅️
         """获取节点的邻居信息"""
         try:
             with self.driver.session() as session:
@@ -545,7 +558,7 @@ class HybridRetrievalModule:
             logger.error(f"获取邻居节点失败: {e}")
             return []
     
-    def hybrid_search(self, query: str, top_k: int = 5) -> List[Document]:
+    def hybrid_search(self, query: str, top_k: int = 5) -> List[Document]:  # ✅️
         """
         混合检索：使用Round-robin轮询合并策略
         公平轮询合并不同检索结果，不使用权重配置
@@ -559,6 +572,7 @@ class HybridRetrievalModule:
         vector_docs = self.vector_search_enhanced(query, top_k)
         
         # 3. Round-robin轮询合并
+        # 按照固定的轮转顺序从传统检索和图RAG检索的结果中交替选择文档。具体过程是：第1个位置选择传统检索的第1个结果，第2个位置选择图RAG的第1个结果，第3个位置选择传统检索的第2个结果，以此类推。这种机制避免了复杂的分数融合计算，通过位置轮转自然实现了不同检索策略结果的均衡分布
         merged_docs = []
         seen_doc_ids = set()
         max_len = max(len(dual_docs), len(vector_docs))

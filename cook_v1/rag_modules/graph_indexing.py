@@ -58,6 +58,128 @@ class GraphIndexingModule:
         self.key_to_entities: Dict[str, List[str]] = defaultdict(list)
         self.key_to_relations: Dict[str, List[str]] = defaultdict(list)
         
+        # 假设有一个 "宫保鸡丁" 菜谱系统，包含以下数据
+        # entity_kv_store = {
+        #     # 菜谱实体
+        #     "recipe_001": EntityKeyValue(
+        #         entity_name="宫保鸡丁",
+        #         index_keys=["宫保鸡丁"],
+        #         value_content="""菜品名称: 宫保鸡丁
+        #         描述: 经典川菜，酸甜微辣
+        #         分类: 热菜
+        #         菜系: 川菜
+        #         难度: 中等
+        #         制作时间: 30分钟""",
+        #         entity_type="Recipe",
+        #         metadata={"node_id": "recipe_001", "properties": {...}}
+        #     ),
+            
+        #     # 食材实体
+        #     "ing_001": EntityKeyValue(
+        #         entity_name="鸡胸肉",
+        #         index_keys=["鸡胸肉"],
+        #         value_content="""食材名称: 鸡胸肉
+        #         类别: 肉类
+        #         营养信息: 高蛋白低脂肪
+        #         储存方式: 冷藏保存""",
+        #         entity_type="Ingredient",
+        #         metadata={"node_id": "ing_001", "properties": {...}}
+        #     ),
+            
+        #     "ing_002": EntityKeyValue(
+        #         entity_name="花生米",
+        #         index_keys=["花生米"],
+        #         value_content="""食材名称: 花生米
+        #         类别: 坚果类
+        #         营养信息: 富含蛋白质和脂肪""",
+        #         entity_type="Ingredient",
+        #         metadata={"node_id": "ing_002", "properties": {...}}
+        #     ),
+            
+        #     # 烹饪步骤实体
+        #     "step_001": EntityKeyValue(
+        #         entity_name="步骤_step_001",
+        #         index_keys=["步骤_step_001"],
+        #         value_content="""烹饪步骤: 步骤_step_001
+        #         步骤描述: 将鸡胸肉切丁，加入料酒、盐、淀粉腌制15分钟
+        #         步骤顺序: 1
+        #         技巧: 腌制时加入少量蛋清可使肉质更嫩""",
+        #         entity_type="CookingStep",
+        #         metadata={"node_id": "step_001", "properties": {...}}
+        #     ),
+        # }
+
+        #     relation_kv_store = {
+        #     # 菜谱-食材关系（宫保鸡丁需要鸡胸肉）
+        #     "rel_0_recipe_001_ing_001": RelationKeyValue(
+        #         relation_id="rel_0_recipe_001_ing_001",
+        #         index_keys=["REQUIRES", "食材搭配", "烹饪原料", "宫保鸡丁_食材", "鸡胸肉"],
+        #         value_content="""关系类型: REQUIRES
+        #         源实体: 宫保鸡丁
+        #         目标实体: 鸡胸肉""",
+        #         relation_type="REQUIRES",
+        #         source_entity="recipe_001",
+        #         target_entity="ing_001",
+        #         metadata={"source_name": "宫保鸡丁", "target_name": "鸡胸肉", ...}
+        #     ),
+            
+        #     # 菜谱-食材关系（宫保鸡丁需要花生米）
+        #     "rel_1_recipe_001_ing_002": RelationKeyValue(
+        #         relation_id="rel_1_recipe_001_ing_002",
+        #         index_keys=["REQUIRES", "食材搭配", "烹饪原料", "宫保鸡丁_食材", "花生米"],
+        #         value_content="""关系类型: REQUIRES
+        #         源实体: 宫保鸡丁
+        #         目标实体: 花生米""",
+        #         relation_type="REQUIRES",
+        #         source_entity="recipe_001",
+        #         target_entity="ing_002",
+        #         metadata={"source_name": "宫保鸡丁", "target_name": "花生米", ...}
+        #     ),
+            
+        #     # 菜谱-步骤关系
+        #     "rel_2_recipe_001_step_001": RelationKeyValue(
+        #         relation_id="rel_2_recipe_001_step_001",
+        #         index_keys=["HAS_STEP", "制作步骤", "烹饪过程", "宫保鸡丁_步骤", "制作方法"],
+        #         value_content="""关系类型: HAS_STEP
+        #         源实体: 宫保鸡丁
+        #         目标实体: 步骤_step_001""",
+        #         relation_type="HAS_STEP",
+        #         source_entity="recipe_001",
+        #         target_entity="step_001",
+        #         metadata={"source_name": "宫保鸡丁", "target_name": "步骤_step_001", ...}
+        #     ),
+        # }
+
+        # key_to_entities = {
+        #     "宫保鸡丁": ["recipe_001"],
+        #     "鸡胸肉": ["ing_001"],
+        #     "花生米": ["ing_002"],
+        #     "步骤_step_001": ["step_001"],
+            
+        #     # 假设还有另一个菜谱也用到鸡胸肉
+        #     # "鸡胸肉": ["ing_001", "ing_005"],  # 多个实体共享同一名称
+        # }
+
+        # key_to_relations = {
+        #     # 按关系类型索引
+        #     "REQUIRES": ["rel_0_recipe_001_ing_001", "rel_1_recipe_001_ing_002"],
+        #     "HAS_STEP": ["rel_2_recipe_001_step_001"],
+            
+        #     # 按主题索引
+        #     "食材搭配": ["rel_0_recipe_001_ing_001", "rel_1_recipe_001_ing_002"],
+        #     "烹饪原料": ["rel_0_recipe_001_ing_001", "rel_1_recipe_001_ing_002"],
+        #     "制作步骤": ["rel_2_recipe_001_step_001"],
+        #     "烹饪过程": ["rel_2_recipe_001_step_001"],
+            
+        #     # 按菜谱名称索引
+        #     "宫保鸡丁_食材": ["rel_0_recipe_001_ing_001", "rel_1_recipe_001_ing_002"],
+        #     "宫保鸡丁_步骤": ["rel_2_recipe_001_step_001"],
+            
+        #     # 按食材名称索引
+        #     "鸡胸肉": ["rel_0_recipe_001_ing_001"],
+        #     "花生米": ["rel_1_recipe_001_ing_002"],
+        # }
+
     # 将Recipe、Ingredient和CookingStep实体转换为键值对，为每个实体生成索引键（使用实体名称），构建实体的详细描述内容，建立索引键到实体的映射
     def create_entity_key_values(self, recipes: List[Any], ingredients: List[Any], 
                                 cooking_steps: List[Any]) -> Dict[str, EntityKeyValue]:
@@ -91,7 +213,7 @@ class GraphIndexingModule:
             # 创建键值对
             entity_kv = EntityKeyValue(
                 entity_name=entity_name,
-                index_keys=[entity_name],  # 使用名称作为唯一索引键
+                index_keys=[entity_name],  # 使用名称作为唯一索引键，这里提前保存下键，之后去重后会使用这里存储的重建映射
                 value_content='\n'.join(content_parts),
                 entity_type="Recipe",
                 metadata={
@@ -200,7 +322,7 @@ class GraphIndexingModule:
             # 创建关系键值对
             relation_kv = RelationKeyValue(
                 relation_id=relation_id,
-                index_keys=index_keys,
+                index_keys=index_keys,  # 这里提前保存下键，之后去重后会使用这里存储的重建映射
                 value_content='\n'.join(content_parts),
                 relation_type=relation_type,
                 source_entity=source_id,
@@ -300,7 +422,7 @@ class GraphIndexingModule:
         """
         logger.info("开始去重实体和关系...")
         
-        # 实体去重：基于名称
+        # 实体去重：基于名称（id互不相同，但是每个id的名字一定是唯一的，可能多个id对应同一个名字）
         name_to_entities = defaultdict(list)
         for entity_id, entity_kv in self.entity_kv_store.items():
             name_to_entities[entity_kv.entity_name].append(entity_id)

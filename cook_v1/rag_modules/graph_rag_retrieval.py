@@ -73,7 +73,7 @@ class GraphRAGRetrieval:
         self.relation_cache = {}
         self.subgraph_cache = {}
         
-    def initialize(self):
+    def initialize(self):  # ✅️
         """初始化图RAG检索系统"""
         logger.info("初始化图RAG检索系统...")
         
@@ -94,7 +94,7 @@ class GraphRAGRetrieval:
         # 预热：构建实体和关系索引
         self._build_graph_index()
         
-    def _build_graph_index(self):
+    def _build_graph_index(self):  # ✅️
         """构建图索引以加速查询"""
         logger.info("构建图结构索引...")
         
@@ -138,7 +138,7 @@ class GraphRAGRetrieval:
         except Exception as e:
             logger.error(f"构建图索引失败: {e}")
     
-    def understand_graph_query(self, query: str) -> GraphQuery:
+    def understand_graph_query(self, query: str) -> GraphQuery:  # ✅️
         """
         理解查询的图结构意图
         这是图RAG的核心：从自然语言到图查询的转换
@@ -260,7 +260,7 @@ class GraphRAGRetrieval:
                 max_depth=2
             )
     
-    def multi_hop_traversal(self, graph_query: GraphQuery) -> List[GraphPath]:
+    def multi_hop_traversal(self, graph_query: GraphQuery) -> List[GraphPath]:  # ✅️
         """
         多跳图遍历：这是图RAG的核心优势
         通过图结构发现隐含的知识关联
@@ -285,12 +285,16 @@ class GraphRAGRetrieval:
                     # 根据是否有目标关键词动态拼接过滤条件
                     target_filter_clause = ""
                     if target_keywords:
+                        # 在多跳遍历中，只保留那些名称或分类与目标关键词有交集的节点 ，实现灵活的模糊匹配，提高查询的召回率。可理解为target节点的名字或类别，只要和任意关键词有“模糊包含关系”，就算匹配成功
+                        # （1）先用“名字”去模糊匹配关键词，关键词是否包含名词如target.name = "青椒"，kw = "青椒类蔬菜"或名词是否包含关键词如target.name = "青椒"，kw = "椒"，双向匹配因为用户说的话可能比数据库更具体或更泛化。
+                        # （2）同样逻辑作用在分类上
                         target_filter_clause = """
-                    AND ANY(kw IN $target_keywords WHERE
-                        (target.name IS NOT NULL AND (toString(target.name) CONTAINS kw OR kw CONTAINS toString(target.name))) OR
-                        (target.category IS NOT NULL AND (toString(target.category) CONTAINS kw OR kw CONTAINS toString(target.category)))
-                    )"""
+                        AND ANY(kw IN $target_keywords WHERE
+                            (target.name IS NOT NULL AND (toString(target.name) CONTAINS kw OR kw CONTAINS toString(target.name))) OR
+                            (target.category IS NOT NULL AND (toString(target.category) CONTAINS kw OR kw CONTAINS toString(target.category)))
+                        )"""
                     
+                    # 从用户提到的起点实体出发，在 Neo4j 图里走 1 到 max_depth 跳，找到相关目标节点，并给每条路径打分排序
                     cypher_query = f"""
                     // 多跳推理查询
                     UNWIND $source_entities as source_name
@@ -347,7 +351,8 @@ class GraphRAGRetrieval:
         logger.info(f"多跳遍历完成，找到 {len(paths)} 条路径")
         return paths
     
-    def extract_knowledge_subgraph(self, graph_query: GraphQuery) -> KnowledgeSubgraph:
+    # 获取实体和它关联的邻居的信息
+    def extract_knowledge_subgraph(self, graph_query: GraphQuery) -> KnowledgeSubgraph:  # ✅️
         """
         提取知识子图：获取实体相关的完整知识网络
         这体现了图RAG的整体性思维
@@ -405,7 +410,7 @@ class GraphRAGRetrieval:
         # 降级方案：简单邻居查询
         return self._fallback_subgraph_extraction(graph_query)
     
-    def graph_structure_reasoning(self, subgraph: KnowledgeSubgraph, query: str) -> List[str]:
+    def graph_structure_reasoning(self, subgraph: KnowledgeSubgraph, query: str) -> List[str]:  # ✅️
         """
         基于图结构的推理：这是图RAG的智能之处
         不仅检索信息，还能进行逻辑推理
@@ -432,7 +437,7 @@ class GraphRAGRetrieval:
             logger.error(f"图结构推理失败: {e}")
             return []
     
-    def adaptive_query_planning(self, query: str) -> List[GraphQuery]:
+    def adaptive_query_planning(self, query: str) -> List[GraphQuery]:  # ✅️
         """
         自适应查询规划：根据查询复杂度动态调整策略
         """
@@ -479,7 +484,7 @@ class GraphRAGRetrieval:
             
         return query_plans
     
-    def graph_rag_search(self, query: str, top_k: int = 5) -> List[Document]:
+    def graph_rag_search(self, query: str, top_k: int = 5) -> List[Document]:  # ✅️
         """
         图RAG主搜索接口：整合所有图RAG能力
         """
@@ -528,7 +533,7 @@ class GraphRAGRetrieval:
     
     # ========== 辅助方法 ==========
     
-    def _parse_neo4j_path(self, record) -> Optional[GraphPath]:
+    def _parse_neo4j_path(self, record) -> Optional[GraphPath]:  # ✅️
         """解析Neo4j路径记录"""
         try:
             path_nodes = []
@@ -559,7 +564,7 @@ class GraphRAGRetrieval:
             logger.error(f"路径解析失败: {e}")
             return None
     
-    def _build_knowledge_subgraph(self, record) -> KnowledgeSubgraph:
+    def _build_knowledge_subgraph(self, record) -> KnowledgeSubgraph:  # ✅️
         """构建知识子图对象"""
         try:
             central_nodes = [dict(record["source"])]
@@ -583,7 +588,7 @@ class GraphRAGRetrieval:
                 reasoning_chains=[]
             )
     
-    def _paths_to_documents(self, paths: List[GraphPath], query: str) -> List[Document]:
+    def _paths_to_documents(self, paths: List[GraphPath], query: str) -> List[Document]:  # ✅️
         """将图路径转换为Document对象"""
         documents = []
         
@@ -607,7 +612,7 @@ class GraphRAGRetrieval:
             
         return documents
     
-    def _subgraph_to_documents(self, subgraph: KnowledgeSubgraph, 
+    def _subgraph_to_documents(self, subgraph: KnowledgeSubgraph,  # ✅️
                               reasoning_chains: List[str], query: str) -> List[Document]:
         """将知识子图转换为Document对象"""
         documents = []
@@ -630,7 +635,7 @@ class GraphRAGRetrieval:
         
         return documents
     
-    def _build_path_description(self, path: GraphPath) -> str:
+    def _build_path_description(self, path: GraphPath) -> str:  # ✅️
         """构建路径的自然语言描述"""
         if not path.nodes:
             return "空路径"
@@ -644,7 +649,7 @@ class GraphRAGRetrieval:
         
         return "".join(desc_parts)
     
-    def _build_subgraph_description(self, subgraph: KnowledgeSubgraph) -> str:
+    def _build_subgraph_description(self, subgraph: KnowledgeSubgraph) -> str:  # ✅️
         """构建子图的自然语言描述"""
         central_names = [node.get("name", "未知") for node in subgraph.central_nodes]
         node_count = len(subgraph.connected_nodes)
