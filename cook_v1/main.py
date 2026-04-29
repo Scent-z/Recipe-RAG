@@ -4,6 +4,15 @@
 """
 
 import os
+
+# 配置HuggingFace缓存目录
+hf_cache_dir = "E:/BJ/huggingface_cache"
+os.environ["HF_HOME"] = hf_cache_dir
+os.environ["TRANSFORMERS_CACHE"] = hf_cache_dir
+
+# 确保缓存目录存在
+os.makedirs(hf_cache_dir, exist_ok=True)
+
 import sys
 import time
 import logging

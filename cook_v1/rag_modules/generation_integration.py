@@ -23,14 +23,14 @@ class GenerationIntegrationModule:
         self.temperature = temperature
         self.max_tokens = max_tokens
         
-        # 初始化OpenAI客户端（使用Moonshot API）
-        api_key = os.getenv("MOONSHOT_API_KEY")
+        # 初始化OpenAI客户端（使用Deepseek API）
+        api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("请设置 MOONSHOT_API_KEY 环境变量")
+            raise ValueError("请设置 DEEPSEEK_API_KEY 环境变量")
         
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.moonshot.cn/v1"
+            base_url="https://api.deepseek.com"
         )
 
         logger.info(f"生成模块初始化完成，模型: {model_name}")

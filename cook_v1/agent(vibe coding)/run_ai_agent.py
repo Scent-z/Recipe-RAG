@@ -20,7 +20,7 @@ def load_config():
         return {
             "kimi": {
                 "api_key": "",
-                "base_url": "https://api.moonshot.cn/v1"
+                "base_url": "https://api.deepseek.com"
             },
             "output": {
                 "format": "neo4j",

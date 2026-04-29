@@ -28,7 +28,7 @@ class GenerationIntegrationModule:
         if not api_key:
             raise ValueError("请设置 OPENAI_API_KEY 环境变量")
 
-        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.moonshot.cn/v1")
+        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com")
 
         self.client = OpenAI(
             api_key=api_key,

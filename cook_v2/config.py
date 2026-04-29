@@ -24,7 +24,7 @@ class GraphRAGConfig:
 
     # 模型配置
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
-    llm_model: str = os.getenv("LLM_MODEL", "moonshot-v1-8k")
+    llm_model: str = os.getenv("LLM_MODEL", "deepseek-chat")
 
     # 检索配置（LightRAG Round-robin策略）
     top_k: int = 5
