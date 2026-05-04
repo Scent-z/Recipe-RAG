@@ -172,7 +172,15 @@ class HybridRetrievalModule:
                 max_tokens=500
             )
             
-            result = json.loads(response.choices[0].message.content.strip())
+            # result = json.loads(response.choices[0].message.content.strip())
+            content = response.choices[0].message.content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+            result = json.loads(content)
+            
             entity_keywords = result.get("entity_keywords", [])
             topic_keywords = result.get("topic_keywords", [])
             
@@ -454,10 +462,10 @@ class HybridRetrievalModule:
         entity_results = self.entity_level_retrieval(entity_keywords, top_k)
         topic_results = self.topic_level_retrieval(topic_keywords, top_k)
 
-        log.info('实体检索关键字：', entity_keywords)
-        log.info('实体检索结果：', entity_results)
-        log.info('主题检索关键字：', topic_keywords)
-        log.info('主题检索结果：', topic_results)
+        logger.info(f'实体检索关键字：{entity_keywords}')
+        logger.info(f'实体检索结果：{entity_results}')
+        logger.info(f'主题检索关键字：{topic_keywords}')
+        logger.info(f'主题检索结果：{topic_results}')
         
         # 3. 结果合并和排序
         all_results = entity_results + topic_results

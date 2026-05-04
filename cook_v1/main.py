@@ -169,8 +169,7 @@ class AdvancedGraphRAGSystem:
             
             # 进行文档分块
             print("进行文档分块...")
-            chunks = self.data_module.chunk_documents(  # 对每个菜谱文档进行分块，每个块包含一定数量的文本
-                documents=self.data_module.documents,
+            chunks = self.data_module.chunk_documents(
                 chunk_size=self.config.chunk_size,
                 chunk_overlap=self.config.chunk_overlap
             )

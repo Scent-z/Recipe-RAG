@@ -119,7 +119,14 @@ class IntelligentQueryRouter:
                 max_tokens=800
             )
             
-            result = json.loads(response.choices[0].message.content.strip())
+            # result = json.loads(response.choices[0].message.content.strip())
+            content = response.choices[0].message.content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+            result = json.loads(content)
             
             analysis = QueryAnalysis(
                 query_complexity=result.get("query_complexity", 0.5),
